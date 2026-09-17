@@ -7,7 +7,7 @@ Most student music projects just upload an MP3 and play it back from a static UR
 
 ---
 
-# Sreenshots
+# Screenshots
 <img width="1825" height="835" alt="image" src="https://github.com/user-attachments/assets/4cdcf6c3-af04-4ba4-bf69-e965d561af8f" />
 <img width="1817" height="837" alt="image" src="https://github.com/user-attachments/assets/6e512658-bff5-4f0e-82f3-e3f1d067849f" />
 <img width="1820" height="831" alt="image" src="https://github.com/user-attachments/assets/72473c13-727c-4856-b6e6-f568e73a3848" />
