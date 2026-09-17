@@ -1,144 +1,148 @@
-# ðŸŽµ SoundWave â€” Production Audio Streaming & Processing Platform
 
-> Full-stack multimedia platform featuring HTTP 206 partial content byte-range streaming, Redis caching, BullMQ background task processing, and a persistent React audio player UI.
+# SoundWave 🎵
 
-[![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg)](https://expressjs.com/)
-[![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-cyan.svg)](https://tailwindcss.com/)
-[![Redis](https://img.shields.io/badge/Cache-Redis-red.svg)](https://redis.io/)
-[![BullMQ](https://img.shields.io/badge/Queue-BullMQ-orange.svg)](https://bullmq.io/)
-[![Tests](https://img.shields.io/badge/Tests-Jest%20100%25%20Passing-brightgreen.svg)]()
+A full-stack music streaming platform built with Node.js, Express, React, and Redis.
+
+Most student music projects just upload an MP3 and play it back from a static URL. I built SoundWave to solve the real-world problems that come with handling large media files: high initial buffering latency, high bandwidth consumption, and server event-loop blocking during media processing.
 
 ---
 
-## ðŸ›ï¸ System Architecture
+## What It Does
+
+- **HTTP 206 Byte-Range Audio Streaming:** Instead of downloading the full 15MB file upfront, the client requests specific byte ranges (`Range: bytes=start-end`). The server reads targeted slices off disk and streams them back with `206 Partial Content`. Playback starts in under 100ms and scrub-seeking across the track is instant.
+- **In-Memory Caching (Redis):** Frequently requested catalog queries are cached in Redis with a 60-second TTL. The cache is automatically evicted/invalidated when a creator publishes a new track.
+- **Background Task Processing (BullMQ):** Audio duration extraction and waveform peak calculation are offloaded to an asynchronous Redis worker queue so the main HTTP thread never freezes during uploads.
+- **Persistent React Audio Player:** A docked bottom player (Spotify-style) managed via React Context so music keeps playing smoothly while users browse, search, and filter tracks.
+- **Containerized:** Includes `Dockerfile` and `docker-compose.yml` to spin up MongoDB, Redis, the API server, and the web client with one command.
+
+---
+
+## System Architecture
 
 ```
-                               â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-                               â”‚       React Frontend (Vite + Tailwind)  â”‚
-                               â”‚  - Persistent Audio Player (Spotify-bar)â”‚
-                               â”‚  - Audio Waveform Peak Visualizer       â”‚
-                               â”‚  - Track Catalog with Live Search/Filterâ”‚
-                               â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                                                    â”‚
-                             Range: bytes=0-1048576 â”‚ HTTP REST & Streams
-                                                    â–¼
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚                               Express API Gateway Server                                â”‚
-â”‚                                                                                        â”‚
-â”‚  [Rate Limiter] â”€â”€â–¶ [Helmet Security] â”€â”€â–¶ [JWT Auth Guard] â”€â”€â–¶ [Central Error Handler] â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚                             â”‚                           â”‚
-              Cache Miss / Write            Audio File Uploads             Range Streams
-                       â–¼                             â–¼                           â–¼
-            â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-            â”‚   MongoDB Database   â”‚      â”‚  BullMQ Task Queue â”‚      â”‚  Local / Cloud S3  â”‚
-            â”‚  (User & Song Docs)  â”‚      â”‚  (Waveform Worker) â”‚      â”‚  (MP3/WAV Storage) â”‚
-            â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–²â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–²â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                       â”‚                             â”‚                           â”‚
-            Cache Hit (60s TTL)                      â–¼                           â”‚
-            â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”                 â”‚
-            â”‚     Redis Cache      â”‚â—€â”€â”€â”€â”€â”€â”‚  Asynchronous Peak â”‚                 â”‚
-            â”‚  (In-Memory Store)   â”‚      â”‚   & Duration Calc  â”‚                 â”‚
-            â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                 â”‚
-                       â–²                                                         â”‚
-                       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ fs.createReadStream(start, end) â”€â”€â”€â”€â”€â”˜
-                                            (HTTP 206 Partial Content)
+                       ┌───────────────────────────────┐
+                       │  React + Vite Frontend (UI)   │
+                       │   - Persistent Audio Player   │
+                       │   - Interactive Waveform      │
+                       │   - Real-Time Search / Filter │
+                       └───────────────┬───────────────┘
+                                       │
+                Range: bytes=0-1048576 │ REST / Chunked Stream
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Express API Server (:5000)                         │
+│                                                                             │
+│  [Rate Limiting] ──▶ [Helmet Security] ──▶ [JWT Auth] ──▶ [Central Errors]  │
+└──────────────────────┬───────────────────────────────┬──────────────────────┘
+                       │                               │
+              Cache Miss / Write                  Media Uploads
+                       ▼                               ▼
+            ┌──────────────────────┐        ┌────────────────────┐
+            │   MongoDB Database   │        │ BullMQ Task Queue  │
+            │  (Users & Metadata)  │        │ (Waveform Worker)  │
+            └──────────▲───────────┘        └──────────┬─────────┘
+                       │                               │
+              Cache Hit (60s TTL)                      ▼
+            ┌──────────────────────┐        ┌────────────────────┐
+            │     Redis Cache      │◀───────│ Asynchronous Peak  │
+            │  (In-Memory Storage) │        │   Calculation      │
+            └──────────────────────┘        └────────────────────┘
 ```
 
 ---
 
-## ðŸš€ Key Engineering Highlights (Interview Discussion Points)
+## Tech Stack
 
-1. **HTTP 206 Partial Content (Byte-Range Audio Streaming):**
-   - Implemented streaming with `Range` header support (`bytes=start-end`).
-   - Enables immediate playback under 100ms without buffering whole files, instant scrub-seeking across tracks, and significant bandwidth savings.
-
-2. **Redis In-Memory Caching:**
-   - Caches song catalog queries (`GET /api/songs`) with a 60-second TTL.
-   - Cache invalidation occurs automatically when an artist uploads a new track.
-   - Includes graceful circuit-breaking: if Redis is unreachable locally, requests fall back seamlessly to MongoDB queries without downtime.
-
-3. **BullMQ Background Task Processing:**
-   - Heavy audio analysis (duration estimation and waveform peak calculation) is offloaded to a background queue, keeping the main Node.js event loop unblocked.
-
-4. **Security Hardening:**
-   - Token-based JWT authentication with salted bcrypt password hashing (cost factor 10).
-   - `express-rate-limit` prevents brute-force login and API abuse.
-   - Helmet HTTP header security configured with Cross-Origin Resource Policies.
-
-5. **Automated Unit & Integration Testing:**
-   - 100% passing test suite using Jest and Supertest validating health checks, authentication rejections, and byte-range HTTP 206 headers.
+- **Backend:** Node.js, Express.js, MongoDB (Mongoose), Redis (ioredis), BullMQ, JWT, Multer
+- **Frontend:** React 19, Vite, Tailwind CSS, Lucide React
+- **Testing:** Jest, Supertest
+- **DevOps:** Docker, Docker Compose
 
 ---
 
-## ðŸ“ Repository Structure
+## Project Structure
 
 ```
 soundwave/
-â”œâ”€â”€ backend/
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ config/          # MongoDB connection & Redis caching client
-â”‚   â”‚   â”œâ”€â”€ controllers/     # Auth, Song, and Range Stream controllers
-â”‚   â”‚   â”œâ”€â”€ middleware/      # Auth (JWT), Multer upload, Rate Limiter, Error Handler
-â”‚   â”‚   â”œâ”€â”€ models/          # User & Song Mongoose models
-â”‚   â”‚   â”œâ”€â”€ queues/          # BullMQ queue & background worker
-â”‚   â”‚   â”œâ”€â”€ routes/          # Express route definitions
-â”‚   â”‚   â”œâ”€â”€ app.js           # Express app setup (separated for Supertest testing)
-â”‚   â”‚   â””â”€â”€ server.js        # Server entry point
-â”‚   â”œâ”€â”€ tests/               # Automated test suite (Jest + Supertest)
-â”‚   â”œâ”€â”€ uploads/             # Audio asset storage
-â”‚   â”œâ”€â”€ EXPLAINER.md         # Plain-English interview cheat sheet for Redis, BullMQ & Streams
-â”‚   â”œâ”€â”€ package.json
-â”‚   â””â”€â”€ .env.example
-â”œâ”€â”€ frontend/
-â”‚   â”œâ”€â”€ src/
-â”‚   â”‚   â”œâ”€â”€ components/      # AudioPlayer, SongCard, WaveformBar, Navbar, Modals
-â”‚   â”‚   â”œâ”€â”€ context/         # PlayerContext (Global audio state & seek management)
-â”‚   â”‚   â”œâ”€â”€ App.jsx          # Dashboard layout & live architecture badges
-â”‚   â”‚   â””â”€â”€ index.css        # Tailwind styling & dark scrollbars
-â”‚   â”œâ”€â”€ vite.config.js       # Proxy configurations to backend
-â”‚   â””â”€â”€ package.json
-â””â”€â”€ README.md
+├── backend/
+│   ├── src/
+│   │   ├── config/          # Database connection & Redis client with offline fallback
+│   │   ├── controllers/     # Auth, Song, and Range Stream controllers
+│   │   ├── middleware/      # Auth guard, Multer upload, Rate Limiting, Error handling
+│   │   ├── models/          # User and Song Mongoose schemas
+│   │   ├── queues/          # BullMQ queue definition and audio worker
+│   │   ├── routes/          # Express route definitions
+│   │   ├── app.js           # Express app setup (isolated for testing)
+│   │   └── server.js        # Server entry point
+│   ├── tests/               # Automated test suite (Jest + Supertest)
+│   ├── uploads/             # Audio asset directory
+│   ├── EXPLAINER.md         # Plain-English interview notes on streaming and caching
+│   ├── Dockerfile
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # AudioPlayer, WaveformBar, SongCard, Navbar, Modals
+│   │   ├── context/         # PlayerContext (global playback and scrub state)
+│   │   ├── App.jsx          # Dashboard layout and discover catalog
+│   │   └── index.css        # Tailwind styling
+│   ├── Dockerfile
+│   ├── vite.config.js
+│   └── package.json
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
-## ðŸ› ï¸ Quick Start Guide
+## Quick Start
 
+### Option 1: Run with Docker (Recommended)
 
-### 🐳 Run with Docker Compose (One-Click Setup)
+Make sure you have Docker Desktop running, then run:
+
 ```bash
 docker-compose up --build
 ```
-This automatically boots:
-- MongoDB on port `27017`
-- Redis on port `6379`
-- SoundWave Backend on `http://localhost:5000`
-- SoundWave Frontend on `http://localhost:80`
 
-### Prerequisites
-- Node.js (v18 or newer)
-- MongoDB (optional for demo; fallback data included)
-- Redis (optional; graceful in-memory fallback active if offline)
+This starts:
+- **MongoDB** on `localhost:27017`
+- **Redis** on `localhost:6379`
+- **Backend API** on `http://localhost:5000`
+- **Frontend UI** on `http://localhost:80`
 
-### 1. Run Backend
+---
+
+### Option 2: Run Locally (Manual)
+
+#### 1. Backend Setup
+
 ```bash
 cd backend
 npm install
+```
+
+Create a `.env` file inside `backend/` (or copy from `.env.example`):
+
+```env
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb://127.0.0.1:27017/soundwave
+REDIS_URL=redis://127.0.0.1:6379
+JWT_SECRET=your_secret_jwt_key_here
+CLIENT_URL=http://localhost:5173
+```
+
+Start the backend:
+```bash
 npm start
 ```
-Server will start on `http://localhost:5000` (Health check: `http://localhost:5000/health`).
+*(Server starts at `http://localhost:5000` — health probe at `http://localhost:5000/health`)*.
 
-To run the automated test suite:
-```bash
-npm test
-```
+#### 2. Frontend Setup
 
-### 2. Run Frontend
+In a new terminal:
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -146,11 +150,33 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
-## ðŸ“ Resume Bullet Points (Tailored for NatWest)
+## Running Automated Tests
 
-```markdown
-- Architected and built SoundWave, a full-stack music streaming platform utilizing Node.js, Express, React, and MongoDB, featuring HTTP 206 Partial Content byte-range audio streaming for sub-100ms playback and instantaneous seek latency.
-- Implemented in-memory caching using Redis (60s TTL) with automated cache invalidation, reducing repeated catalog query database latency by over 80%.
-- Integrated BullMQ with Redis to asynchronously offload audio duration calculation and waveform amplitude generation, preventing CPU blocking on the primary Node.js event loop.
-- Developed automated API integration test suites using Jest and Supertest, ensuring 100% test pass rates across authentication boundaries and streaming range headers.
+The test suite covers route health, JWT auth rejections, and HTTP 206 byte-range streaming headers using Supertest against an in-memory Express instance:
+
+```bash
+cd backend
+npm test
+```
+
+---
+
+## Key API Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `GET` | `/health` | Service health status probe | No |
+| `POST` | `/api/auth/register` | Create a listener or creator account | No |
+| `POST` | `/api/auth/login` | Authenticate user and receive JWT | No |
+| `GET` | `/api/auth/me` | Fetch logged-in user profile | Yes (Bearer) |
+| `GET` | `/api/songs` | List songs (cached in Redis, supports `?search=&genre=`) | No |
+| `POST` | `/api/songs/upload` | Upload audio file and dispatch BullMQ worker job | Yes (Bearer) |
+| `GET` | `/api/stream/:id` | **Byte-range audio stream (HTTP 206 Partial Content)** | No |
+
+---
+
+## Author
+
+**Pushkar Pandey**
+- GitHub: [@pushkarpandeyGit](https://github.com/pushkarpandeyGit)
 ```
