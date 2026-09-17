@@ -6,6 +6,15 @@ A full-stack music streaming platform built with Node.js, Express, React, and Re
 Most student music projects just upload an MP3 and play it back from a static URL. I built SoundWave to solve the real-world problems that come with handling large media files: high initial buffering latency, high bandwidth consumption, and server event-loop blocking during media processing.
 
 ---
+<img width="1825" height="835" alt="image" src="https://github.com/user-attachments/assets/4cdcf6c3-af04-4ba4-bf69-e965d561af8f" />
+<img width="1817" height="837" alt="image" src="https://github.com/user-attachments/assets/6e512658-bff5-4f0e-82f3-e3f1d067849f" />
+<img width="1820" height="831" alt="image" src="https://github.com/user-attachments/assets/72473c13-727c-4856-b6e6-f568e73a3848" />
+<img width="1821" height="822" alt="image" src="https://github.com/user-attachments/assets/da4fd09a-f76e-4098-bb12-42a3adb7a66b" />
+<img width="1052" height="582" alt="image" src="https://github.com/user-attachments/assets/c6e06cda-07ce-46d1-b1bb-2c673698effe" />
+
+
+
+
 
 ## What It Does
 
@@ -179,4 +188,3 @@ npm test
 
 **Pushkar Pandey**
 - GitHub: [@pushkarpandeyGit](https://github.com/pushkarpandeyGit)
-```
